@@ -5,10 +5,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[])
 {
-    int sock, res;
+    int sock, res, PID_client, PID_serveur;
     char message1[50];
     char message2[50];
     struct sockaddr_in add_src;
@@ -52,11 +53,16 @@ int main(int argc, char *argv[])
     add_dest.sin_port = htons(atoi(argv[2]));
     add_dest.sin_family = AF_INET;
 
+    PID_client=getpid();
+
     sendto(sock, message1, 50, 0, (struct sockaddr *)&add_dest, sizeof(add_dest));
+    sendto(sock, &PID_client, sizeof(PID_client), 0, (struct sockaddr *) & add_dest, sizeof (add_dest));
     
     recvfrom(sock, message2, 50, 0, (struct sockaddr *)&add_dest, &taille);
+    recvfrom(sock, &PID_serveur, sizeof(PID_serveur),0, (struct sockaddr*) &add_dest, &taille);
 
     printf("Message envoyé par le serveur : %s\n", message2);
+    printf("PID envoyé par le serveur : %d\n", PID_serveur);
 
     return 0;
 }
