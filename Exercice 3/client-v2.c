@@ -71,14 +71,11 @@ int main(int argc, char *argv[])
     if (res_read == -1)
     {
         printf("Erreur read");
+        exit(6);
     }
 
-    write(sock, request, sizeof(request));
+    printf("%s", buffer);
 
-    while (read(sock, buffer, sizeof(buffer) > 0))
-    {
-        printf("%s\n", buffer);
-    }
     close(sock);
     return 0;
 }

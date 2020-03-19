@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
     int sock, res, sock_service, n = 1;
-    char message[50];
+    char message[1000];
     struct sockaddr_in add_IP;
     socklen_t taille = sizeof(add_IP);
 
