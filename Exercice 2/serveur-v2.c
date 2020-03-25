@@ -6,54 +6,55 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
+
+#define ERROR -1
 
 int main(int argc, char *argv[])
 {
-    int sock, res, sock_service, n = 1;
+    int sock, sock_service;
     char message[1000];
     struct sockaddr_in add_IP;
     socklen_t taille = sizeof(add_IP);
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (sock == -1)
+    if (sock == ERROR)
     {
-        printf("Erreur creation socket");
-        close(sock);
-        exit(1);
+        perror("socket()");
+        exit(errno);
     }
 
     add_IP.sin_family = AF_INET;
     add_IP.sin_port = htons(atoi(argv[1]));
     add_IP.sin_addr.s_addr = INADDR_ANY;
 
-    res = bind(sock, (struct sockaddr *)&add_IP, sizeof(add_IP));
-
-    if (res == -1)
+    if (bind(sock, (struct sockaddr *)&add_IP, sizeof(add_IP)) == ERROR)
     {
-        printf("Error bind");
-        exit(2);
+        perror("bind()");
+        exit(errno);
     }
 
-    listen(sock, 5);
+    if (listen(sock, 5) == ERROR)
+    {
+        perror("listen()");
+        exit(errno);
+    }
 
     sock_service = accept(sock, (struct sockaddr *)&add_IP, (socklen_t *)&taille);
 
-    if (sock_service < 0)
+    if (sock_service == ERROR)
     {
-        printf("Error accept");
-        close(sock_service);
-        exit(3);
-    }
-    else
-    {
-        while (n > 0)
-        {
-            n = read(sock_service, &message, sizeof(message));
-            printf("%s", message);
-        }
+        perror("accept()");
+        exit(errno);
     }
 
-    printf("\n");
+    if (read(sock_service, &message, sizeof(message)) == ERROR)
+    {
+        perror("read()");
+        exit(errno);
+    }
+    printf("%s", message);
+
     return 0;
 }

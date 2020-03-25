@@ -6,11 +6,13 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
+
+#define ERROR -1
 
 int main(int argc, char *argv[])
 {
-    int sock, res;
-    int res_write, res_read, res_connect;
+    int sock;
     char buffer[5000];
     char request[56000];
     struct sockaddr_in add_src;
@@ -20,22 +22,20 @@ int main(int argc, char *argv[])
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (sock == -1)
+    if (sock == ERROR)
     {
-        printf("Erreur creation socket");
-        exit(1);
+        perror("socket()");
+        exit(errno);
     }
 
     add_src.sin_family = AF_INET;
     add_src.sin_port = htons(10000);
     add_src.sin_addr.s_addr = INADDR_ANY;
 
-    res = bind(sock, (struct sockaddr *)&add_src, sizeof(add_src));
-
-    if (res == -1)
+    if (bind(sock, (struct sockaddr *)&add_src, sizeof(add_src)) == ERROR)
     {
-        printf("Erreur bind");
-        exit(2);
+        perror("bind()");
+        exit(errno);
     }
 
     hp = (struct hostent *)gethostbyname(argv[1]);
@@ -53,25 +53,22 @@ int main(int argc, char *argv[])
     sprintf(request, "GET /%s HTTP/1.1\nHOST: %s:%d\nConnection: keep-alive\r\n\r\n", argv[3], argv[1], atoi(argv[2]));
     printf("Requête du client: \n%s\n", request);
 
-    res_connect = connect(sock, (struct sockaddr *)&add_dest, taille);
-    if (res_connect == -1)
+    if (connect(sock, (struct sockaddr *)&add_dest, taille) == ERROR)
     {
-        printf("Erreur connect");
-        exit(4);
+        perror("connect()");
+        exit(errno);
     }
 
-    res_write = write(sock, request, sizeof(request));
-    if (res_write == -1)
+    if (write(sock, request, sizeof(request)) == ERROR)
     {
-        printf("Erreur write");
-        exit(5);
+        perror("write()");
+        exit(errno);
     }
 
-    res_read = read(sock, buffer, sizeof(buffer));
-    if (res_read == -1)
+    if (read(sock, buffer, sizeof(buffer)) == ERROR)
     {
-        printf("Erreur read");
-        exit(6);
+        perror("read()");
+        exit(errno);
     }
 
     printf("%s", buffer);

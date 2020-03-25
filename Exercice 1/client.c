@@ -6,10 +6,13 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
+
+#define ERROR -1
 
 int main(int argc, char *argv[])
 {
-    int sock, res, PID_client, PID_serveur;
+    int sock, PID_client, PID_serveur;
     char message1[50];
     char message2[50];
     struct sockaddr_in add_src;
@@ -21,10 +24,10 @@ int main(int argc, char *argv[])
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-    if (sock == -1)
+    if (sock == ERROR)
     {
-        printf("Erreur creation socket");
-        exit(1);
+        perror("socket()");
+        exit(errno);
     }
 
     add_src.sin_family = AF_INET;
@@ -33,12 +36,10 @@ int main(int argc, char *argv[])
 
     strcpy(message1, argv[3]);
 
-    res = bind(sock, (struct sockaddr *)&add_src, sizeof(add_src));
-
-    if (res == -1)
+    if (bind(sock, (struct sockaddr *)&add_src, sizeof(add_src)) == ERROR)
     {
-        printf("Erreur bind");
-        exit(2);
+        perror("bind()");
+        exit(errno);
     }
 
     hp = gethostbyname(argv[1]);
@@ -46,20 +47,36 @@ int main(int argc, char *argv[])
     if (hp == NULL)
     {
         printf("Serveur introuvable");
-        exit(3);
+        exit(1);
     }
 
     memcpy(&add_dest.sin_addr.s_addr, hp->h_addr_list[0], hp->h_length);
     add_dest.sin_port = htons(atoi(argv[2]));
     add_dest.sin_family = AF_INET;
 
-    PID_client=getpid();
+    PID_client = getpid();
 
-    sendto(sock, message1, 50, 0, (struct sockaddr *)&add_dest, sizeof(add_dest));
-    sendto(sock, &PID_client, sizeof(PID_client), 0, (struct sockaddr *) & add_dest, sizeof (add_dest));
-    
-    recvfrom(sock, message2, 50, 0, (struct sockaddr *)&add_dest, &taille);
-    recvfrom(sock, &PID_serveur, sizeof(PID_serveur),0, (struct sockaddr*) &add_dest, &taille);
+    if (sendto(sock, message1, 50, 0, (struct sockaddr *)&add_dest, sizeof(add_dest)) < 0)
+    {
+        perror("sendto()");
+        exit(errno);
+    }
+    if (sendto(sock, &PID_client, sizeof(PID_client), 0, (struct sockaddr *)&add_dest, sizeof(add_dest)) < 0)
+    {
+        perror("sendto()");
+        exit(errno);
+    }
+
+    if (recvfrom(sock, message2, 50, 0, (struct sockaddr *)&add_dest, &taille) < 0)
+    {
+        perror("recvfrom()");
+        exit(errno);
+    }
+    if (recvfrom(sock, &PID_serveur, sizeof(PID_serveur), 0, (struct sockaddr *)&add_dest, &taille) < 0)
+    {
+        perror("recvfrom()");
+        exit(errno);
+    }
 
     printf("Message envoyé par le serveur : %s\n", message2);
     printf("PID envoyé par le serveur : %d\n", PID_serveur);
