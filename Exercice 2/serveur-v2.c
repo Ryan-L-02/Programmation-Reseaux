@@ -40,21 +40,24 @@ int main(int argc, char *argv[])
         perror("listen()");
         exit(errno);
     }
-
-    sock_service = accept(sock, (struct sockaddr *)&add_IP, (socklen_t *)&taille);
-
-    if (sock_service == ERROR)
+    while (1)
     {
-        perror("accept()");
-        exit(errno);
-    }
+        sock_service = accept(sock, (struct sockaddr *)&add_IP, &taille);
 
-    if (read(sock_service, &message, sizeof(message)) == ERROR)
-    {
-        perror("read()");
-        exit(errno);
+        if (sock_service == ERROR)
+        {
+            perror("accept()");
+            exit(errno);
+        }
+
+        if (read(sock_service, &message, sizeof(message)) == ERROR)
+        {
+            perror("read()");
+            exit(errno);
+        }
+        printf("%s", message);
+        close(sock_service);
     }
-    printf("%s", message);
 
     close(sock);
     return 0;
