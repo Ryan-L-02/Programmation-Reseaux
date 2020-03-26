@@ -116,5 +116,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    close(sock_web);
+    close(sock_log);
     return 0;
 }

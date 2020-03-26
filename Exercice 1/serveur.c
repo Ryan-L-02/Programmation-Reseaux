@@ -13,8 +13,7 @@
 int main(int argc, char *argv[])
 {
     int sock, PID_client, PID_serveur;
-    char message1[50];
-    char message2[50] = "Transmission OK";
+    char message[100];
     struct sockaddr_in add_IP;
     socklen_t taille = sizeof(add_IP);
 
@@ -38,7 +37,7 @@ int main(int argc, char *argv[])
 
     PID_serveur = getpid();
 
-    if (recvfrom(sock, message1, 50, 0, (struct sockaddr *)&add_IP, &taille) < 0)
+    if (recvfrom(sock, message, 50, 0, (struct sockaddr *)&add_IP, &taille) < 0)
     {
         perror("recvfrom()");
         exit(errno);
@@ -49,10 +48,10 @@ int main(int argc, char *argv[])
         exit(errno);
     }
 
-    printf("Message reçu par le serveur : %s\n", message1);
+    printf("Message reçu par le serveur : %s\n", message);
     printf("PID reçu par le serveur : %d\n", PID_client);
 
-    if (sendto(sock, message2, 50, 0, (struct sockaddr *)&add_IP, sizeof(add_IP)) < 0)
+    if (sendto(sock, message, 50, 0, (struct sockaddr *)&add_IP, sizeof(add_IP)) < 0)
     {
         perror("sendto()");
         exit(errno);
@@ -63,5 +62,6 @@ int main(int argc, char *argv[])
         exit(errno);
     }
 
+    close(sock);
     return 0;
 }

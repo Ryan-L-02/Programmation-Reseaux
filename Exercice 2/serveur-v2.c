@@ -56,5 +56,6 @@ int main(int argc, char *argv[])
     }
     printf("%s", message);
 
+    close(sock);
     return 0;
 }

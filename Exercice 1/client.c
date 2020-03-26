@@ -81,5 +81,6 @@ int main(int argc, char *argv[])
     printf("Message envoyé par le serveur : %s\n", message2);
     printf("PID envoyé par le serveur : %d\n", PID_serveur);
 
+    close(sock);
     return 0;
 }
