@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     /*Boucle infini, lorsqu'une connexion est terminé, on en attend une nouvelle sans terminer le programme*/
     while (1)
     {
-        /*On accepte une connexion au serveur, tout en récupérant les infos du client (IP...), tout en gérant le code de retour*/
+        /*On accepte une connexion au serveur, et on récupère les infos du client (IP...), tout en gérant le code de retour*/
         sock_service = accept(sock, (struct sockaddr *)&add_IP, &taille);
         if (sock_service == ERROR)
         {
