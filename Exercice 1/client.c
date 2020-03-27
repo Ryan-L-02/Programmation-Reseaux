@@ -14,8 +14,8 @@ int main(int argc, char *argv[])
 {
     /*Création d'un client utilisant le protocole UDP*/
     int sock, PID_client, PID_serveur;
-    char message1[50];
-    char message2[50];
+    char message1[100];
+    char message2[100];
     struct sockaddr_in add_src;
     struct sockaddr_in add_dest;
     struct hostent *hp;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         exit(errno);
     }
 
-    /*On affiche sur le terminal les infos reçu du serveur*/
+    /*On affiche sur le terminal les infos envoyés par le serveur*/
     printf("Message envoyé par le serveur : %s\n", message2);
     printf("PID envoyé par le serveur : %d\n", PID_serveur);
 
