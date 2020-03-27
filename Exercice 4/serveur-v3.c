@@ -10,14 +10,45 @@
 #include <errno.h>
 #include <time.h>
 #include <arpa/inet.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h> /*open() fstat()*/
+#include <fcntl.h>    /*open()*/
 
 #define ERROR -1
 #define WEB 1
 #define LOG 2
 #define IPv4 16
 #define BUFFER_SIZE 100
+#define TAILLE 1000
 
-void log(char buffer[], struct sockaddr_in addIP, int web_log)
+void request_file(char buffer[], char fichier[])
+{
+    int i = 0, j = 0;
+    for (i = 5; i < BUFFER_SIZE; i++)
+    {
+        fichier[j] = buffer[i];
+        j++;
+
+        if (buffer[i + 1] == 'H' && buffer[i + 2] == 'T' && buffer[i + 3] == 'T' && buffer[i + 4] == 'P')
+        {
+            break;
+        }
+    }
+}
+
+void create_log()
+{
+    remove("log_file.html");
+    FILE *fichier = NULL;
+    fichier = fopen("log_file.html", "a+");
+    if (fichier != NULL)
+    {
+        fprintf(fichier, "<!DOCTYPE html>\n<html lang=\"fr\">\n<meta charset=\"UTF-8\">\n<head>\n<title>\nExerice 4 - LOG\n</title>\n</head>\n<body>\n<center>\n<h1 style=\"font-family:verdana;\">LOG FILE</h1>\n</center>\n</body>\n</html>\n\n");
+    }
+    fclose(fichier);
+}
+
+void write_log(char buffer[], struct sockaddr_in addIP, int web_log)
 {
     FILE *fichier = NULL;
     struct sockaddr_in *add_client_v4;
@@ -25,14 +56,12 @@ void log(char buffer[], struct sockaddr_in addIP, int web_log)
     char host[IPv4];
     time_t heure;
     struct tm *heure_info;
-    int i = 0, j = 0;
     char page[BUFFER_SIZE];
 
     fichier = fopen("log_file.html", "a+");
 
     if (fichier != NULL)
     {
-
         add_client_v4 = (struct sockaddr_in *)&addIP;
         add_ip_v4 = add_client_v4->sin_addr;
         inet_ntop(AF_INET, &add_ip_v4, host, IPv4);
@@ -43,20 +72,11 @@ void log(char buffer[], struct sockaddr_in addIP, int web_log)
         if (web_log == WEB)
         {
             fprintf(fichier, "<p style=\"font-family:verdana;\"><strong>Adresse IP :</strong> ");
-            fprintf(fichier, host);
+            fprintf(fichier, "%s", host);
             fprintf(fichier, " - <strong>Date :</strong> ");
-            fprintf(fichier, asctime(heure_info));
+            fprintf(fichier, "%s", asctime(heure_info));
 
-            for (i = 5; i < BUFFER_SIZE; i++)
-            {
-                page[j] = buffer[i];
-                j++;
-
-                if (buffer[i + 1] == 'H' && buffer[i + 2] == 'T' && buffer[i + 3] == 'T' && buffer[i + 4] == 'P')
-                {
-                    break;
-                }
-            }
+            request_file(buffer, page);
 
             if (page[0] == ' ')
             {
@@ -65,7 +85,7 @@ void log(char buffer[], struct sockaddr_in addIP, int web_log)
             else
             {
                 fprintf(fichier, "- <strong>Requête :</strong> /");
-                fprintf(fichier, page);
+                fprintf(fichier, "%s", page);
             }
 
             fprintf(fichier, "</p>");
@@ -76,9 +96,9 @@ void log(char buffer[], struct sockaddr_in addIP, int web_log)
         if (web_log == LOG)
         {
             fprintf(fichier, "<p style=\"font-family:verdana;\"><strong>Adresse IP :</strong> ");
-            fprintf(fichier, host);
+            fprintf(fichier, "%s", host);
             fprintf(fichier, " - <strong>Date :</strong> ");
-            fprintf(fichier, asctime(heure_info));
+            fprintf(fichier, "%s", asctime(heure_info));
             fprintf(fichier, "- <strong>Requête :</strong> /log_file.html");
             fprintf(fichier, "</p>");
             fprintf(fichier, "\n\n");
@@ -89,6 +109,43 @@ void log(char buffer[], struct sockaddr_in addIP, int web_log)
     {
         printf("Impossible d'ouvrir le fichier log_file.html\n");
     }
+}
+
+void reponseHTTP(char buffer[], int web_log, char response[])
+{
+    int fichier;
+    char page[BUFFER_SIZE];
+
+    if (web_log == WEB)
+    {
+        request_file(buffer, page);
+
+        if (page[0] == ' ' || strcmp(page, "index.html") == 1)
+        {
+            fichier = open("index.html", O_RDONLY);
+        }
+        else
+        {
+            fichier = open("error.html", O_RDONLY);
+        }
+    }
+
+    if (web_log == LOG)
+    {
+        fichier = open("log_file.html", O_RDONLY);
+    }
+
+    struct stat file_stat;
+
+    if (fstat(fichier, &file_stat) < 0)
+    {
+        perror("fstat()");
+        exit(errno);
+    }
+
+    sprintf(response, "HTTP/1.1 200 OK\r\nContent-Type : text/HTML\r\nContent-Length : %ld\r\n\r\n", file_stat.st_size);
+
+    close(fichier);
 }
 
 int main(int argc, char *argv[])
@@ -156,6 +213,7 @@ int main(int argc, char *argv[])
     }
 
     fd_set groupe1;
+    create_log();
 
     while (1)
     {
@@ -186,8 +244,45 @@ int main(int argc, char *argv[])
                 perror("read()");
                 exit(errno);
             }
-            printf("%s", buffer_web);
-            log(buffer_web, add_web, WEB);
+
+            write_log(buffer_web, add_web, WEB);
+
+            char response[TAILLE];
+            reponseHTTP(buffer_web, WEB, response);
+
+            if (send(sock_web_service, response, strlen(response), 0) < 0)
+            {
+                perror("send()");
+                exit(errno);
+            }
+
+            FILE *fichier = NULL;
+            char name[BUFFER_SIZE] = "";
+            request_file(buffer_web, name);
+            if (name[0] == ' ' || strcmp(name, "index.html") == 1)
+            {
+                fichier = fopen("index.html", "r");
+            }
+            else
+            {
+                fichier = fopen("error.html", "r");
+            }
+
+            char chaine[TAILLE];
+            if (fichier != NULL)
+            {
+                while (fgets(chaine, TAILLE, fichier) != NULL)
+                {
+                    if (send(sock_web_service, chaine, strlen(chaine), 0) < 0)
+                    {
+                        perror("send()");
+                        exit(errno);
+                    }
+                }
+
+                fclose(fichier);
+            }
+
             close(sock_web_service);
         }
 
@@ -208,8 +303,35 @@ int main(int argc, char *argv[])
                 perror("read()");
                 exit(errno);
             }
-            printf("%s", buffer_log);
-            log(buffer_log, add_log, LOG);
+
+            write_log(buffer_log, add_log, LOG);
+
+            char response[TAILLE];
+            reponseHTTP(buffer_log, LOG, response);
+
+            if (send(sock_log_service, response, strlen(response), 0) < 0)
+            {
+                perror("send()");
+                exit(errno);
+            }
+
+            FILE *fichier = NULL;
+            fichier = fopen("log_file.html", "r");
+            char chaine[TAILLE] = "";
+            if (fichier != NULL)
+            {
+                while (fgets(chaine, TAILLE, fichier) != NULL)
+                {
+                    if (send(sock_log_service, chaine, strlen(chaine), 0) < 0)
+                    {
+                        perror("send()");
+                        exit(errno);
+                    }
+                }
+
+                fclose(fichier);
+            }
+
             close(sock_log_service);
         }
     }
