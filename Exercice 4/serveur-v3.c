@@ -44,11 +44,16 @@ void create_log()
     remove("log_file.html");
     FILE *fichier = NULL;
     fichier = fopen("log_file.html", "a+");
+
     if (fichier != NULL)
     {
         /*L'entête du fichier de log est à base d'html, pour améliorer la mise en page sur navigateur*/
         fprintf(fichier, "<!DOCTYPE html>\n<html lang=\"fr\">\n<meta charset=\"UTF-8\">\n<head>\n<title>\nExerice 4 - LOG\n</title>\n</head>\n<body>\n<center>\n<h1 style=\"font-family:verdana;\">LOG FILE</h1>\n</center>\n</body>\n</html>\n\n");
         fclose(fichier);
+    }
+    else
+    {
+        printf("Impossible de créer le fichier log_file.html\n");
     }
 }
 
@@ -175,7 +180,7 @@ void reponseHTTP(char buffer[], int web_log, char response[])
 
 int main(int argc, char *argv[])
 {
-    /*Création d'un serveur TCP qui écoute sur deux ports*/
+    /*Création d'un serveur TCP qui écoute sur deux ports :*/
     /*Le premier correspond au port WEB*/
     /*Le deuxième correspond au port LOG, et enverra uniquement le fichier de log, peut importe le fichier demandé*/
     int sock_web, sock_web_service;
@@ -186,6 +191,12 @@ int main(int argc, char *argv[])
     socklen_t taille_log = sizeof(add_log);
     char buffer_web[BUFFER_SIZE];
     char buffer_log[BUFFER_SIZE];
+
+    fd_set groupe1;
+    FILE *fichier = NULL;
+    char response[TAILLE];
+    char chaine[TAILLE];
+    char name[BUFFER_SIZE];
 
     /*Création du socket pour la partie WEB et gestion de l'erreur*/
     sock_web = socket(AF_INET, SOCK_STREAM, 0);
@@ -247,8 +258,6 @@ int main(int argc, char *argv[])
         exit(errno);
     }
 
-    fd_set groupe1;
-
     /*On crée un fichier de log propre*/
     create_log();
 
@@ -290,7 +299,6 @@ int main(int argc, char *argv[])
             write_log(buffer_web, add_web, WEB);
 
             /*On construit l'entête de la réponse qui sera envoyé par le serveur*/
-            char response[TAILLE];
             reponseHTTP(buffer_web, WEB, response);
 
             /*On envoie cet entête au client; Elle va permettre de prévenir le client que l'on va envoyer de l'html*/
@@ -300,8 +308,6 @@ int main(int argc, char *argv[])
                 exit(errno);
             }
 
-            FILE *fichier = NULL;
-            char name[BUFFER_SIZE] = "";
             /*On récupère le nom du fichier qui est demandé par le client*/
             request_file(buffer_web, name);
 
@@ -316,7 +322,6 @@ int main(int argc, char *argv[])
                 fichier = fopen("error.html", "r");
             }
 
-            char chaine[TAILLE];
             /*On envoie le contenu du fichier ouvert*/
             if (fichier != NULL)
             {
@@ -328,9 +333,9 @@ int main(int argc, char *argv[])
                         exit(errno);
                     }
                 }
-
                 fclose(fichier);
             }
+
             /*On ferme la connexion*/
             close(sock_web_service);
         }
@@ -359,7 +364,6 @@ int main(int argc, char *argv[])
             write_log(buffer_log, add_log, LOG);
 
             /*On construit l'entête de la réponse qui sera envoyé par le serveur*/
-            char response[TAILLE];
             reponseHTTP(buffer_log, LOG, response);
 
             /*On envoie cet entête au client; Elle va permettre de prévenir le client que l'on va envoyer de l'html*/
@@ -369,10 +373,8 @@ int main(int argc, char *argv[])
                 exit(errno);
             }
 
-            FILE *fichier = NULL;
-            fichier = fopen("log_file.html", "r");
-            char chaine[TAILLE] = "";
             /*On envoie le contenu du fichier log_file.html*/
+            fichier = fopen("log_file.html", "r");
             if (fichier != NULL)
             {
                 while (fgets(chaine, TAILLE, fichier) != NULL)
@@ -383,9 +385,9 @@ int main(int argc, char *argv[])
                         exit(errno);
                     }
                 }
-
                 fclose(fichier);
             }
+
             /*On ferme la connexion*/
             close(sock_log_service);
         }
