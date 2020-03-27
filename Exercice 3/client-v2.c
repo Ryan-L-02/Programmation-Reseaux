@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     add_dest.sin_port = htons(atoi(argv[2]));
     add_dest.sin_family = AF_INET;
 
-    sprintf(request, "GET /%s HTTP/1.1\nHOST: %s:%d\nConnection: keep-alive\r\n\r\n", argv[3], argv[1], atoi(argv[2]));
+    sprintf(request, "GET /%s HTTP/1.1\r\nHOST: %s:%d\r\nConnection: keep-alive\r\n\r\n", argv[3], argv[1], atoi(argv[2]));
     printf("Requête du client: \n%s\n", request);
 
     if (connect(sock, (struct sockaddr *)&add_dest, taille) == ERROR)
